@@ -97,7 +97,6 @@ class EnvConfig(DefaultEnvConfig):
     }
     MAX_EPISODE_LENGTH = 120
 
-
 class TrainConfig(DefaultTrainingConfig):
     image_keys = ["side_policy", "wrist_1", "wrist_2"]
     classifier_keys = ["side_classifier"]
