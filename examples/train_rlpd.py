@@ -267,6 +267,7 @@ def learner(rng, agent, replay_buffer, demo_buffer, wandb_logger=None):
     server.register_data_store("actor_env_intvn", demo_buffer)
     server.start(threaded=True)
 
+
     # Loop to wait until replay_buffer is filled
     pbar = tqdm.tqdm(
         total=config.training_starts,
@@ -284,6 +285,7 @@ def learner(rng, agent, replay_buffer, demo_buffer, wandb_logger=None):
     # send the initial network to the actor
     server.publish_network(agent.state.params)
     print_green("sent initial network to actor")
+
 
     # 50/50 sampling from RLPD, half from demo and half from online experience
     replay_iterator = replay_buffer.get_iterator(
@@ -310,6 +312,7 @@ def learner(rng, agent, replay_buffer, demo_buffer, wandb_logger=None):
     else:
         train_critic_networks_to_update = frozenset({"critic", "grasp_critic"})
         train_networks_to_update = frozenset({"critic", "grasp_critic", "actor", "temperature"})
+
 
     for step in tqdm.tqdm(
         range(start_step, config.max_steps), dynamic_ncols=True, desc="learner"
@@ -373,10 +376,13 @@ def main(_):
         save_video=FLAGS.save_video,
         classifier=True,
     )
+
     env = RecordEpisodeStatistics(env)
 
     rng, sampling_rng = jax.random.split(rng)
-    
+
+
+    print("=============Begin to create agent ...")
     if config.setup_mode == 'single-arm-fixed-gripper' or config.setup_mode == 'dual-arm-fixed-gripper':   
         agent: SACAgent = make_sac_pixel_agent(
             seed=FLAGS.seed,
@@ -409,6 +415,10 @@ def main(_):
         include_grasp_penalty = True
     else:
         raise NotImplementedError(f"Unknown setup mode: {config.setup_mode}")
+    
+    print("Success to create agent ...")
+
+
 
     # replicate agent across devices
     # need the jnp.array to avoid a bug where device_put doesn't recognize primitives
@@ -444,9 +454,14 @@ def main(_):
         )
         return replay_buffer, wandb_logger
 
+    print("Finish to preparate ")
+
+    import ipdb; ipdb.set_trace()
+
     if FLAGS.learner:
         sampling_rng = jax.device_put(sampling_rng, device=sharding.replicate())
         replay_buffer, wandb_logger = create_replay_buffer_and_wandb_logger()
+        
         demo_buffer = MemoryEfficientReplayBufferDataStore(
             env.observation_space,
             env.action_space,

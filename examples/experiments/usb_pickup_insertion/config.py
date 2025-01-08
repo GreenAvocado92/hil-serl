@@ -15,7 +15,7 @@ from serl_launcher.wrappers.chunking import ChunkingWrapper
 from serl_launcher.networks.reward_classifier import load_classifier_func
 
 from experiments.config import DefaultTrainingConfig
-from experiments.usb_pickup_insertion.wrapper import USBEnv, GripperPenaltyWrapper
+from experiments.usb_pickup_insertion.wrapper import USBEnv, GripperPenaltyWrapper, USBEnvUR
 
 
 class EnvConfig(DefaultEnvConfig):
@@ -110,9 +110,19 @@ class TrainConfig(DefaultTrainingConfig):
     setup_mode = "single-arm-learned-gripper"
 
     def get_environment(self, fake_env=False, save_video=False, classifier=False):
-        env = USBEnv(
-            fake_env=fake_env, save_video=save_video, config=EnvConfig()
-        )
+        env = None
+
+        robot_type = "UR"
+
+        if robot_type == "UR":
+            env = USBEnvUR(
+                fake_env=fake_env, save_video=save_video, config=EnvConfig()
+            )
+        else:
+            env = USBEnv(
+                fake_env=fake_env, save_video=save_video, config=EnvConfig()
+            )
+
         if not fake_env:
             env = SpacemouseIntervention(env)
         env = RelativeFrame(env)
