@@ -517,7 +517,10 @@ device_specs = {
     "SpaceMouse Wireless": DeviceSpec(
         name="SpaceMouse Wireless",
         # vendor ID and product ID
-        hid_id=[0x256F, 0xC62E],
+        # hid_id=[0x256F, 0xC62E],
+        # 通过lsusb,改成自己的设备
+        # Bus 001 Device 009: ID 256f:c63a 3Dconnexion SpaceMouse Wireless BT
+        hid_id=[0x256F, 0xC63A], 
         # LED HID usage code pair
         led_id=[0x8, 0x4B],
         mappings={
@@ -779,6 +782,7 @@ def open(
         else:
             raise Exception("No device connected/supported!")
 
+
     found_devices = []
     hid = Enumeration()
     all_hids = hid.find()
@@ -977,7 +981,6 @@ def config_remove():
 
     if _active_device is not None:
         _active_device.config_remove()
-
 
 def print_state(state):
     """Simple default DoF callback

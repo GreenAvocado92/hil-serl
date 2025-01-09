@@ -109,7 +109,7 @@ class TrainConfig(DefaultTrainingConfig):
     encoder_type = "resnet-pretrained"
     setup_mode = "single-arm-learned-gripper"
 
-    def get_environment(self, fake_env=False, save_video=False, classifier=False):
+    def get_environment(self, fake_env=False, save_video=False, classifier=False, control_device='spacemouse'):
         env = None
 
         robot_type = "UR"
@@ -124,7 +124,9 @@ class TrainConfig(DefaultTrainingConfig):
             )
 
         if not fake_env:
-            env = SpacemouseIntervention(env)
+            if control_device=='spacemouse':
+                env = SpacemouseIntervention(env)
+        
         env = RelativeFrame(env)
         env = Quat2EulerWrapper(env)
         env = SERLObsWrapper(env, proprio_keys=self.proprio_keys)

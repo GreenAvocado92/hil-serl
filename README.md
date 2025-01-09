@@ -106,3 +106,12 @@ If you use this code for your research, please cite our paper:
 }
 ```
 
+## 调试
+
+### space mouse
+修改 `serl_robot_infra/franka_env/spacemouse/pyspacemouse.py` 中第 `L523`,将 `vendor ID and product ID` 设置为自己设备的;
+在 `Ubuntu` 下可通过 `lsusb` 查看:
+```
+# Bus 001 Device 009: ID 256f:c63a 3Dconnexion SpaceMouse Wireless BT
+
+```

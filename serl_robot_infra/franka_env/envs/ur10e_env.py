@@ -182,7 +182,7 @@ class Ur10eEnv(gym.Env):
             self.listener = keyboard.Listener(on_press=on_press)
             self.listener.start()
 
-        print("Initialized Franka")
+        print("Initialized UR10e")
 
     def clip_safety_box(self, pose: np.ndarray) -> np.ndarray:
         """Clip the pose to be within the safety box."""

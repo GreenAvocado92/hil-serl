@@ -138,8 +138,6 @@ class USBEnvUR(Ur10eEnv):
         if self.cap is not None:  # close cameras if they are already open
             self.close_cameras()
 
-        # import ipdb; ipdb.set_trace()
-
         """
         self.cap = OrderedDict()
         for cam_name, kwargs in name_serial_dict.items():
@@ -151,7 +149,7 @@ class USBEnvUR(Ur10eEnv):
                 )
                 self.cap[cam_name] = cap
         """
-        
+
     def reset(self, **kwargs):
         self._recover()
         self._update_currpos()

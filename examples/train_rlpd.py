@@ -46,6 +46,7 @@ flags.DEFINE_string("checkpoint_path", None, "Path to save checkpoints.")
 flags.DEFINE_integer("eval_checkpoint_step", 0, "Step to evaluate the checkpoint.")
 flags.DEFINE_integer("eval_n_trajs", 0, "Number of trajectories to evaluate.")
 flags.DEFINE_boolean("save_video", False, "Save video.")
+flags.DEFINE_string("control_device", None, "control device spacemouse/xbox.")
 
 flags.DEFINE_boolean(
     "debug", False, "Debug mode."
@@ -167,7 +168,6 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
 
         # Step environment
         with timer.context("step_env"):
-
             next_obs, reward, done, truncated, info = env.step(actions)
             if "left" in info:
                 info.pop("left")
@@ -241,7 +241,6 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
 
 ##############################################################################
 
-
 def learner(rng, agent, replay_buffer, demo_buffer, wandb_logger=None):
     """
     The learner loop, which runs when "--learner" is set to True.
@@ -262,11 +261,11 @@ def learner(rng, agent, replay_buffer, demo_buffer, wandb_logger=None):
         return {}  # not expecting a response
 
     # Create server
+    # import ipdb; ipdb.set_trace()
     server = TrainerServer(make_trainer_config(), request_callback=stats_callback)
     server.register_data_store("actor_env", replay_buffer)
     server.register_data_store("actor_env_intvn", demo_buffer)
     server.start(threaded=True)
-
 
     # Loop to wait until replay_buffer is filled
     pbar = tqdm.tqdm(
@@ -285,7 +284,6 @@ def learner(rng, agent, replay_buffer, demo_buffer, wandb_logger=None):
     # send the initial network to the actor
     server.publish_network(agent.state.params)
     print_green("sent initial network to actor")
-
 
     # 50/50 sampling from RLPD, half from demo and half from online experience
     replay_iterator = replay_buffer.get_iterator(
@@ -371,10 +369,12 @@ def main(_):
     rng, sampling_rng = jax.random.split(rng)
 
     assert FLAGS.exp_name in CONFIG_MAPPING, "Experiment folder not found."
+
     env = config.get_environment(
         fake_env=FLAGS.learner,
         save_video=FLAGS.save_video,
         classifier=True,
+        control_device='xbox',
     )
 
     env = RecordEpisodeStatistics(env)
@@ -416,7 +416,7 @@ def main(_):
     else:
         raise NotImplementedError(f"Unknown setup mode: {config.setup_mode}")
     
-    print("Success to create agent ...")
+    print("=============Success to create agent ...")
 
 
 
@@ -454,9 +454,7 @@ def main(_):
         )
         return replay_buffer, wandb_logger
 
-    print("Finish to preparate ")
-
-    import ipdb; ipdb.set_trace()
+    print("==============Finish to preparate ")
 
     if FLAGS.learner:
         sampling_rng = jax.device_put(sampling_rng, device=sharding.replicate())
@@ -470,6 +468,7 @@ def main(_):
             include_grasp_penalty=include_grasp_penalty,
         )
 
+        """
         assert FLAGS.demo_path is not None
         for path in FLAGS.demo_path:
             with open(path, "rb") as f:
@@ -478,6 +477,7 @@ def main(_):
                     if 'infos' in transition and 'grasp_penalty' in transition['infos']:
                         transition['grasp_penalty'] = transition['infos']['grasp_penalty']
                     demo_buffer.insert(transition)
+        """
         print_green(f"demo buffer size: {len(demo_buffer)}")
         print_green(f"online buffer size: {len(replay_buffer)}")
 
