@@ -116,6 +116,10 @@ class Ur10eEnv(gym.Env):
             print("Saving videos!")
             self.recording_frames = []
 
+        self.wrist_1_image = None
+        self.wrist_2_image = None
+        self.side_image = None
+
         # boundary box
         self.xyz_bounding_box = gym.spaces.Box(
             config.ABS_POSE_LIMIT_LOW[:3],
@@ -159,7 +163,9 @@ class Ur10eEnv(gym.Env):
 
         self.cap = None
 
-        self.init_cameras(config.REALSENSE_CAMERAS)
+        # self.init_cameras(config.REALSENSE_CAMERAS)
+        self.init_videos()
+
         if self.display_image:
             self.img_queue = queue.Queue()
             self.displayer = ImageDisplayer(self.img_queue, self.url)
@@ -278,21 +284,77 @@ class Ur10eEnv(gym.Env):
             # print(f'Goal not reached, the difference is {delta}, the desired threshold is {self._REWARD_THRESHOLD}')
             return False
 
+    def start_rtsp(self, rtsp_url, camera_id):
+        cap = cv2.VideoCapture(rtsp_url) 
+        # 检查是否成功打开视频流
+        if not cap.isOpened():
+            print("Error: Could not open video stream.")
+            exit()
+
+        frame_count = 0
+        # 读取视频帧
+        while True:
+            ret, t_frame = cap.read()
+            if camera_id == 0:
+                self.wrist_1_image = t_frame
+            if camera_id == 1:
+                self.wrist_2_image = t_frame
+            if camera_id == 3:
+                self.side_image = t_frame
+
+            # self.wrist_1_image = frame.copy()
+            if not ret:
+                print("Error: No more frames to read.")
+                break
+            
+            time.sleep(0.1)
+            # # 显示视频帧
+            # cv2.imshow('Video Stream', t_frame)
+            # image_filename = f"frame_{frame_count}.png"
+
+            # if frame_count % 100 == 0:
+            #     cv2.imwrite(image_filename, frame)
+            #     print(f"Saved {image_filename}")
+
+            # frame_count += 1
+
+            # # 按'q'退出
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+            #     break
+
+        # 释放资源
+        cap.release()
+        cv2.destroyAllWindows()
+
+    def init_videos(self):
+        # 需要初始化n个相机
+        rtsp_url = "rtsp://admin:admin@192.168.8.207:554/channel=1/stream=0"
+        thread = threading.Thread(target=self.start_rtsp, args=(rtsp_url, 0))
+        rtsp_url_wrist_2 = "rtsp://admin:admin@192.168.8.208:554/channel=1/stream=0"
+        thread_wrist_2 = threading.Thread(target=self.start_rtsp, args=(rtsp_url_wrist_2, 1))
+        thread_wrist_2.start()
+        thread.start()
+
     def get_im(self) -> Dict[str, np.ndarray]:
         """Get images from the realsense cameras."""
         images = {}
-        img = cv2.imread('/home/idm/zs/hil/hil-serl/utils/frame_0.png')
-        
+        image_tmp = {}
+
+        image_tmp['wrist_1'] = self.wrist_1_image
+        image_tmp['wrist_2'] = self.wrist_2_image
+        image_tmp['side_policy'] = self.wrist_1_image
+        image_tmp['side_classifier'] = self.wrist_1_image
+
         img_keys = ["side_classifier", "side_policy", "wrist_1", "wrist_2"]
         for key in img_keys:
-            resized = cv2.resize(img, self.observation_space["images"][key].shape[:2][::-1])
+            resized = cv2.resize(image_tmp[key], self.observation_space["images"][key].shape[:2][::-1])
             images[key] = resized[..., ::-1]
-        
+
         return images
 
         # 使用时需要释放
         display_images = {}
-        full_res_images = {}  # New dictionary to store full resolution cropped images
+        full_res_images = {} # New dictionary to store full resolution cropped images
         for key, cap in self.cap.items():
             try:
                 rgb = cap.read()

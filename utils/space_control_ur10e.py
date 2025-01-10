@@ -18,7 +18,6 @@ flags.DEFINE_string("exp_name", 'usb_pickup_insertion', "Name of experiment corr
 flags.DEFINE_integer("successes_needed", 200, "Number of successful transistions to collect.")
 flags.DEFINE_integer("sim", 1, "0/1")
 
-
 success_key = False
 def on_press(key):
     global success_key

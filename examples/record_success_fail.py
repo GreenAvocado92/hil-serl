@@ -10,9 +10,8 @@ from pynput import keyboard
 from experiments.mappings import CONFIG_MAPPING
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string("exp_name", None, "Name of experiment corresponding to folder.")
-flags.DEFINE_integer("successes_needed", 200, "Number of successful transistions to collect.")
-
+flags.DEFINE_string("exp_name", 'usb_pickup_insertion', "Name of experiment corresponding to folder.")
+flags.DEFINE_integer("successes_needed", 20, "Number of successful transistions to collect.")
 
 success_key = False
 def on_press(key):
@@ -60,6 +59,7 @@ def main(_):
                 dones=done,
             )
         )
+
         obs = next_obs
         if success_key:
             successes.append(transition)

@@ -133,22 +133,23 @@ class USBEnvUR(Ur10eEnv):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
     
-    def init_cameras(self, name_serial_dict=None):
-        """Init both wrist cameras."""
-        if self.cap is not None:  # close cameras if they are already open
-            self.close_cameras()
+    # def init_cameras(self, name_serial_dict=None):
+    #     """Init both wrist cameras."""
+        
+    #     if self.cap is not None:  # close cameras if they are already open
+    #         self.close_cameras()
 
-        """
-        self.cap = OrderedDict()
-        for cam_name, kwargs in name_serial_dict.items():
-            if cam_name == "side_classifier":
-                self.cap["side_classifier"] = self.cap["side_policy"]
-            else:
-                cap = VideoCapture(
-                    RSCapture(name=cam_name, **kwargs)
-                )
-                self.cap[cam_name] = cap
-        """
+    #     """
+    #     self.cap = OrderedDict()
+    #     for cam_name, kwargs in name_serial_dict.items():
+    #         if cam_name == "side_classifier":
+    #             self.cap["side_classifier"] = self.cap["side_policy"]
+    #         else:
+    #             cap = VideoCapture(
+    #                 RSCapture(name=cam_name, **kwargs)
+    #             )
+    #             self.cap[cam_name] = cap
+    #     """
 
     def reset(self, **kwargs):
         self._recover()

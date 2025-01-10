@@ -1,7 +1,10 @@
 import cv2, time
+import threading
 
 # RTSP URL
-def start_rtsp(rtsp_url):
+lock = threading.Lock()
+
+def start_rtsp(rtsp_url, frame):
     # 创建VideoCapture对象
     # time.
     cap = cv2.VideoCapture(rtsp_url)
@@ -22,7 +25,8 @@ def start_rtsp(rtsp_url):
     frame_count = 0
     # 读取视频帧
     while True:
-        ret, frame = cap.read()
+        with lock:
+            ret, frame = cap.read()
         if not ret:
             print("Error: No more frames to read.")
             break
@@ -49,4 +53,10 @@ def start_rtsp(rtsp_url):
 
 if __name__ == "__main__":
     rtsp_url = "rtsp://admin:admin@192.168.1.10:554/channel=1/stream=0"
-    start_rtsp(rtsp_url)
+    frame = None
+    thread = threading.Thread(target=start_rtsp, args=(rtsp_url, frame))
+    thread.start()
+
+    time.sleep(2.)
+
+    # start_rtsp(rtsp_url)
