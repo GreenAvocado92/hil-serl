@@ -16,6 +16,7 @@ flags.DEFINE_integer("successes_needed", 20, "Number of successful demos to coll
 def main(_):
     assert FLAGS.exp_name in CONFIG_MAPPING, 'Experiment folder not found.'
     config = CONFIG_MAPPING[FLAGS.exp_name]()
+
     env = config.get_environment(fake_env=False, save_video=False, classifier=True)
     
     obs, info = env.reset()
@@ -28,7 +29,9 @@ def main(_):
     returns = 0
     
     while success_count < success_needed:
-        actions = np.zeros(env.action_space.sample().shape) 
+        actions = np.zeros(env.action_space.sample().shape)
+        actions, _ = env.action(actions)
+        print("actions = ", actions)
         next_obs, rew, done, truncated, info = env.step(actions)
         returns += rew
         if "intervene_action" in info:
@@ -58,7 +61,7 @@ def main(_):
             trajectory = []
             returns = 0
             obs, info = env.reset()
-            
+
     if not os.path.exists("./demo_data"):
         os.makedirs("./demo_data")
     uuid = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

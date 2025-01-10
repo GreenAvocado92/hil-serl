@@ -208,15 +208,40 @@ class Ur10eEnv(gym.Env):
 
         return pose
 
+    def get_target_robot_pose(self, action: np.ndarray, currpos: np.ndarray):
+        """standard gym step function."""
+        start_time = time.time()
+
+        action = np.clip(action, self.action_space.low, self.action_space.high) # 限制最大最小值, -1 -- 1
+
+        xyz_delta = action[:3]
+
+        nextpos = currpos.copy()
+        nextpos[:3] = nextpos[:3] + xyz_delta * self.action_scale[0]
+        
+        # GET ORIENTATION FROM ACTION
+        nextpos[3:] = (
+            Rotation.from_euler("xyz", action[3:6] * self.action_scale[1])
+            * Rotation.from_quat(currpos[3:])
+        ).as_quat()
+
+        gripper_action = action[6] * self.action_scale[2]
+
+        # self._send_gripper_command(gripper_action)
+        # self._send_pos_command(self.clip_safety_box(self.nextpos))
+        return self.clip_safety_box(self.nextpos)
+
     def step(self, action: np.ndarray) -> tuple:
         """standard gym step function."""
         start_time = time.time()
-        action = np.clip(action, self.action_space.low, self.action_space.high)
+
+        action = np.clip(action, self.action_space.low, self.action_space.high) # 限制最大最小值, -1 -- 1
+
         xyz_delta = action[:3]
 
         self.nextpos = self.currpos.copy()
         self.nextpos[:3] = self.nextpos[:3] + xyz_delta * self.action_scale[0]
-
+        
         # GET ORIENTATION FROM ACTION
         self.nextpos[3:] = (
             Rotation.from_euler("xyz", action[3:6] * self.action_scale[1])
@@ -256,6 +281,16 @@ class Ur10eEnv(gym.Env):
     def get_im(self) -> Dict[str, np.ndarray]:
         """Get images from the realsense cameras."""
         images = {}
+        img = cv2.imread('/home/idm/zs/hil/hil-serl/utils/frame_0.png')
+        
+        img_keys = ["side_classifier", "side_policy", "wrist_1", "wrist_2"]
+        for key in img_keys:
+            resized = cv2.resize(img, self.observation_space["images"][key].shape[:2][::-1])
+            images[key] = resized[..., ::-1]
+        
+        return images
+
+        # 使用时需要释放
         display_images = {}
         full_res_images = {}  # New dictionary to store full resolution cropped images
         for key, cap in self.cap.items():
@@ -419,6 +454,7 @@ class Ur10eEnv(gym.Env):
 
     def _send_pos_command(self, pos: np.ndarray):
         """Internal function to send position command to the robot."""
+        # 控制机器人运动到pos点
         self._recover()
         arr = np.array(pos).astype(np.float32)
         data = {"arr": arr.tolist()}
@@ -448,7 +484,7 @@ class Ur10eEnv(gym.Env):
         
         # ps = requests.post(self.url + "getstate").json()
         ps = dict()
-        ps['pose'] = np.random.uniform(low=0, high=1.0, size=6)
+        ps['pose'] = np.random.uniform(low=0, high=1.0, size=7)
         ps['vel'] = np.random.uniform(low=0, high=1.0, size=6)
         ps['force'] = np.random.uniform(low=0, high=1.0, size=3)
         ps['torque'] = np.random.uniform(low=0, high=1.0, size=3)

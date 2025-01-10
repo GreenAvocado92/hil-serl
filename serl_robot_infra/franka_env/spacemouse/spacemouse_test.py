@@ -3,7 +3,6 @@ import time
 import numpy as np
 from franka_env.spacemouse.spacemouse_expert import SpaceMouseExpert
 
-
 def test_spacemouse():
     """Test the SpaceMouseExpert class.
 
@@ -17,7 +16,7 @@ def test_spacemouse():
         while True:
             action, buttons = spacemouse0.get_action()
             print(f"Spacemouse action: {action}, buttons: {buttons}")
-            time.sleep(0.1)
+            time.sleep(0.5)
 
 
 def main():

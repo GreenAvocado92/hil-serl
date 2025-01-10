@@ -226,7 +226,6 @@ class SpacemouseIntervention(gym.ActionWrapper):
         expert_a, buttons = self.expert.get_action()
         self.left, self.right = tuple(buttons)
         intervened = False
-        
         if np.linalg.norm(expert_a) > 0.001:
             intervened = True
 
@@ -249,7 +248,6 @@ class SpacemouseIntervention(gym.ActionWrapper):
 
         if intervened:
             return expert_a, True
-
         return action, False
 
     def step(self, action):

@@ -37,12 +37,18 @@ def main(_):
     failures = []
     success_needed = FLAGS.successes_needed
     pbar = tqdm(total=success_needed)
-    
+    print("success_needed = ", success_needed)
     while len(successes) < success_needed:
-        actions = np.zeros(env.action_space.sample().shape) 
+        actions = np.zeros(env.action_space.sample().shape)
+        # 可以输出 actions
+        actions, _ = env.action(actions)
+        print("actions = ", actions)
+        
         next_obs, rew, done, truncated, info = env.step(actions)
+
         if "intervene_action" in info:
             actions = info["intervene_action"]
+        # import ipdb; ipdb.set_trace()
 
         transition = copy.deepcopy(
             dict(

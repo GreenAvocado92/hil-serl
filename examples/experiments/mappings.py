@@ -1,3 +1,7 @@
+import sys
+sys.path.append('/home/idm/zs/hil/hil-serl/')
+sys.path.append('/home/idm/zs/hil/hil-serl/examples')
+
 from experiments.ram_insertion.config import TrainConfig as RAMInsertionTrainConfig
 from experiments.usb_pickup_insertion.config import TrainConfig as USBPickupInsertionTrainConfig
 from experiments.object_handover.config import TrainConfig as ObjectHandoverTrainConfig

@@ -19,7 +19,7 @@ from experiments.usb_pickup_insertion.wrapper import USBEnv, GripperPenaltyWrapp
 
 
 class EnvConfig(DefaultEnvConfig):
-    SERVER_URL: str = "http://127.0.0.2:5000/"
+    SERVER_URL: str = "http://127.0.0.1:5001/"
     REALSENSE_CAMERAS = {
         "wrist_1": {
             "serial_number": "127122270350",
@@ -125,13 +125,13 @@ class TrainConfig(DefaultTrainingConfig):
 
         if not fake_env:
             if control_device=='spacemouse':
-                env = SpacemouseIntervention(env)
+                env = SpacemouseIntervention(env) # step, action
         
-        env = RelativeFrame(env)
-        env = Quat2EulerWrapper(env)
-        env = SERLObsWrapper(env, proprio_keys=self.proprio_keys)
-        env = ChunkingWrapper(env, obs_horizon=1, act_exec_horizon=None)
-        if classifier:
+        env = RelativeFrame(env) # step
+        env = Quat2EulerWrapper(env) # observation
+        env = SERLObsWrapper(env, proprio_keys=self.proprio_keys) # observation
+        env = ChunkingWrapper(env, obs_horizon=1, act_exec_horizon=None) # step
+        if classifier: 
             classifier = load_classifier_func(
                 key=jax.random.PRNGKey(0),
                 sample=env.observation_space.sample(),
@@ -144,5 +144,5 @@ class TrainConfig(DefaultTrainingConfig):
                 return int(sigmoid(classifier(obs)) > 0.7 and obs["state"][0, 0] > 0.4)
 
             env = MultiCameraBinaryRewardClassifierWrapper(env, reward_func)
-        env = GripperPenaltyWrapper(env, penalty=-0.02)
+        env = GripperPenaltyWrapper(env, penalty=-0.02) # step
         return env
