@@ -14,8 +14,9 @@ sys.path.append('/home/idm/zs/hil/hil-serl/')
 from examples.experiments.mappings import CONFIG_MAPPING
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string("exp_name", None, "Name of experiment corresponding to folder.")
+flags.DEFINE_string("exp_name", 'usb_pickup_insertion', "Name of experiment corresponding to folder.")
 flags.DEFINE_integer("successes_needed", 200, "Number of successful transistions to collect.")
+flags.DEFINE_integer("sim", 1, "0/1")
 
 
 success_key = False
@@ -27,10 +28,6 @@ def on_press(key):
     except AttributeError:
         pass
 
-import rtde_control, rtde_receive
-
-rtde_c = rtde_control.RTDEControlInterface("127.0.0.1")
-rtde_r = rtde_receive.RTDEReceiveInterface("127.0.0.1")
 
 def rotvec2quat(pos):
     rotvec = pos[3:]
@@ -56,30 +53,39 @@ def main(_):
     config = CONFIG_MAPPING[FLAGS.exp_name]()
     env = config.get_environment(fake_env=False, save_video=False, classifier=False)
 
+    sim = True
+    if sim == False:
+        import rtde_control, rtde_receive
+
+        rtde_c = rtde_control.RTDEControlInterface("127.0.0.1")
+        rtde_r = rtde_receive.RTDEReceiveInterface("127.0.0.1")
+
+
     obs, _ = env.reset()
     successes = []
     failures = []
     success_needed = FLAGS.successes_needed
     pbar = tqdm(total=success_needed)
-    print("success_needed = ", success_needed)
+    # print("success_needed = ", success_needed)
     while len(successes) < success_needed:
         actions = np.zeros(env.action_space.sample().shape)
         # 可以输出 actions
         actions, _ = env.action(actions)
+
         print("actions = ", actions)
         
-        # 获取 ur 当前位姿
-        pose = rtde_r.getActualTCPPose() # xyz+rotvec
-        current_pose = rotvec2quat(pose)
+        if sim == False:
+            # 获取 ur 当前位姿
+            pose = rtde_r.getActualTCPPose() # xyz+rotvec
+            current_pose = rotvec2quat(pose)
 
-        # 计算 ur 目标位姿        
-        pos = env.get_target_robot_pose(actions, current_pose) # x y z qw qx qy qz
-        pos = quat2rotvec(pos)
+            # 计算 ur 目标位姿        
+            pos = env.get_target_robot_pose(actions, current_pose) # x y z qw qx qy qz
+            pos = quat2rotvec(pos)
 
-        # 控制 ur 运动
-        rtde_c.moveL(pos, 0.5, 0.3)
+            # 控制 ur 运动
+            rtde_c.moveL(pos, 0.5, 0.3)
         
-        time.sleep(0.2)
 
 if __name__ == "__main__":
     app.run(main)
