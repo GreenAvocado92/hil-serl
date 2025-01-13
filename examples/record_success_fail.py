@@ -42,7 +42,7 @@ def main(_):
         # 可以输出 actions
         actions, _ = env.action(actions)
         print("actions = ", actions)
-        
+
         next_obs, rew, done, truncated, info = env.step(actions)
 
         if "intervene_action" in info:

@@ -1,6 +1,9 @@
-import sys
-sys.path.append('/home/idm/zs/hil/hil-serl/')
-sys.path.append('/home/idm/zs/hil/hil-serl/examples')
+import sys, os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+gparent_dir = os.path.abspath(os.path.join(parent_dir, os.pardir))
+sys.path.append(parent_dir)
+sys.path.append(gparent_dir)
 
 from experiments.ram_insertion.config import TrainConfig as RAMInsertionTrainConfig
 from experiments.usb_pickup_insertion.config import TrainConfig as USBPickupInsertionTrainConfig

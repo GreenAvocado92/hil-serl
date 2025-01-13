@@ -8,7 +8,9 @@ from absl import app, flags
 from pynput import keyboard
 from scipy.spatial.transform import Rotation as R
 
-sys.path.append('/home/idm/zs/hil/hil-serl/')
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+sys.path.append(parent_dir)
 
 # from experiments.mappings import CONFIG_MAPPING
 from examples.experiments.mappings import CONFIG_MAPPING
@@ -26,7 +28,6 @@ def on_press(key):
             success_key = True
     except AttributeError:
         pass
-
 
 def rotvec2quat(pos):
     rotvec = pos[3:]
