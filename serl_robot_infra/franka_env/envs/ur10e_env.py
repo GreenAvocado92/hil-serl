@@ -78,7 +78,8 @@ class URDefaultEnvConfig:
 ##############################################################################
 
 # ur10e 的配置
-
+lock = threading.Lock()
+np.set_printoptions(suppress=True)
 class Ur10eEnv(gym.Env):
     def __init__(
         self,
@@ -165,6 +166,9 @@ class Ur10eEnv(gym.Env):
 
         # self.init_cameras(config.REALSENSE_CAMERAS)
         self.init_videos()
+        # init gripper
+        requests.post(self.url + "init_gripper")
+        self.curr_gripper_pos = 1
 
         if self.display_image:
             self.img_queue = queue.Queue()
@@ -187,6 +191,8 @@ class Ur10eEnv(gym.Env):
                     self.terminate = True
             self.listener = keyboard.Listener(on_press=on_press)
             self.listener.start()
+
+        # import ipdb; ipdb.set_trace()
 
         print("Initialized UR10e")
 
@@ -235,7 +241,8 @@ class Ur10eEnv(gym.Env):
 
         # self._send_gripper_command(gripper_action)
         # self._send_pos_command(self.clip_safety_box(self.nextpos))
-        return self.clip_safety_box(self.nextpos)
+        # return self.clip_safety_box(nextpos)
+        return nextpos
 
     def step(self, action: np.ndarray) -> tuple:
         """standard gym step function."""
@@ -244,10 +251,9 @@ class Ur10eEnv(gym.Env):
         action = np.clip(action, self.action_space.low, self.action_space.high) # 限制最大最小值, -1 -- 1
 
         xyz_delta = action[:3]
-
         self.nextpos = self.currpos.copy()
-        self.nextpos[:3] = self.nextpos[:3] + xyz_delta * self.action_scale[0]
-        
+        self.nextpos[:3] = self.nextpos[:3] + xyz_delta  * 10 # * self.action_scale[0]
+    
         # GET ORIENTATION FROM ACTION
         self.nextpos[3:] = (
             Rotation.from_euler("xyz", action[3:6] * self.action_scale[1])
@@ -257,8 +263,8 @@ class Ur10eEnv(gym.Env):
         gripper_action = action[6] * self.action_scale[2]
 
         self._send_gripper_command(gripper_action)
-        self._send_pos_command(self.clip_safety_box(self.nextpos))
-
+        # self._send_pos_command(self.clip_safety_box(self.nextpos))
+        self._send_pos_command(self.nextpos)
         self.curr_path_length += 1
         dt = time.time() - start_time
         time.sleep(max(0, (1.0 / self.hz) - dt))
@@ -295,32 +301,19 @@ class Ur10eEnv(gym.Env):
         # 读取视频帧
         while True:
             ret, t_frame = cap.read()
-            if camera_id == 0:
-                self.wrist_1_image = t_frame
-            if camera_id == 1:
-                self.wrist_2_image = t_frame
-            if camera_id == 3:
-                self.side_image = t_frame
+            with lock:
+                if camera_id == 0:
+                    self.wrist_1_image = t_frame
+                if camera_id == 1:
+                    self.wrist_2_image = t_frame
+                if camera_id == 2:
+                    self.side_image = t_frame
 
             # self.wrist_1_image = frame.copy()
             if not ret:
                 print("Error: No more frames to read.")
                 break
-            
-            time.sleep(0.1)
-            # # 显示视频帧
-            # cv2.imshow('Video Stream', t_frame)
-            # image_filename = f"frame_{frame_count}.png"
-
-            # if frame_count % 100 == 0:
-            #     cv2.imwrite(image_filename, frame)
-            #     print(f"Saved {image_filename}")
-
-            # frame_count += 1
-
-            # # 按'q'退出
-            # if cv2.waitKey(1) & 0xFF == ord('q'):
-            #     break
+            time.sleep(0.05)
 
         # 释放资源
         cap.release()
@@ -332,18 +325,24 @@ class Ur10eEnv(gym.Env):
         thread = threading.Thread(target=self.start_rtsp, args=(rtsp_url, 0))
         rtsp_url_wrist_2 = "rtsp://admin:admin@192.168.8.208:554/channel=1/stream=0"
         thread_wrist_2 = threading.Thread(target=self.start_rtsp, args=(rtsp_url_wrist_2, 1))
+        rtsp_url_wrist_3 = "rtsp://admin:admin@192.168.8.209:554/channel=1/stream=0"
+        thread_wrist_3 = threading.Thread(target=self.start_rtsp, args=(rtsp_url_wrist_3, 2))
+        thread_wrist_3.start()
+        time.sleep(1)
         thread_wrist_2.start()
+        time.sleep(1)
         thread.start()
+        time.sleep(1)
 
     def get_im(self) -> Dict[str, np.ndarray]:
         """Get images from the realsense cameras."""
         images = {}
         image_tmp = {}
-
-        image_tmp['wrist_1'] = self.wrist_1_image
-        image_tmp['wrist_2'] = self.wrist_2_image
-        image_tmp['side_policy'] = self.wrist_1_image
-        image_tmp['side_classifier'] = self.wrist_1_image
+        with lock:
+            image_tmp['wrist_1'] = self.wrist_1_image
+            image_tmp['wrist_2'] = self.wrist_2_image
+            image_tmp['side_policy'] = self.side_image
+            image_tmp['side_classifier'] = self.side_image
 
         img_keys = ["side_classifier", "side_policy", "wrist_1", "wrist_2"]
         for key in img_keys:
@@ -445,8 +444,8 @@ class Ur10eEnv(gym.Env):
             joint_reset = True
 
         self._recover()
-        self.go_to_reset(joint_reset=joint_reset)
-        self._recover()
+        # self.go_to_reset(joint_reset=joint_reset)
+        # self._recover()
         self.curr_path_length = 0
 
         self._update_currpos()
@@ -525,12 +524,20 @@ class Ur10eEnv(gym.Env):
     def _send_gripper_command(self, pos: float, mode="binary"):
         """Internal function to send gripper command to the robot."""
         if mode == "binary":
+            # if (pos <= -0.5):
+            #     requests.post(self.url + "close_gripper")
+            # elif (pos >= 0.5):
+            #     requests.post(self.url + "open_gripper")
+            # else:
+            #     return 
             if (pos <= -0.5) and (self.curr_gripper_pos > 0.85) and (time.time() - self.last_gripper_act > self.gripper_sleep):  # close gripper
                 requests.post(self.url + "close_gripper")
+                self.curr_gripper_pos = -1
                 self.last_gripper_act = time.time()
                 time.sleep(self.gripper_sleep)
             elif (pos >= 0.5) and (self.curr_gripper_pos < 0.85) and (time.time() - self.last_gripper_act > self.gripper_sleep):  # open gripper
                 requests.post(self.url + "open_gripper")
+                self.curr_gripper_pos = 1
                 self.last_gripper_act = time.time()
                 time.sleep(self.gripper_sleep)
             else: 
@@ -543,46 +550,36 @@ class Ur10eEnv(gym.Env):
         Internal function to get the latest state of the robot and its gripper.
         获得机器人位置6,加速度6,力3,力距3,需要与机器人的节点耦合
         """
-        
-        # ps = requests.post(self.url + "getstate").json()
-        ps = dict()
-        ps['pose'] = np.random.uniform(low=0, high=1.0, size=7)
-        ps['vel'] = np.random.uniform(low=0, high=1.0, size=6)
-        ps['force'] = np.random.uniform(low=0, high=1.0, size=3)
-        ps['torque'] = np.random.uniform(low=0, high=1.0, size=3)
-        ps['jacobian'] = np.random.uniform(low=0, high=1.0, size=42)
-        ps['q'] = np.random.uniform(low=0, high=1.0, size=2)
-        ps['dq'] = np.random.uniform(low=0, high=1.0, size=2)
-        ps["gripper_pos"] = np.random.uniform(low=0, high=1.0, size=1)
+        ps = requests.post(self.url + "getstate").json()
 
         self.currpos = np.array(ps["pose"])
         self.currvel = np.array(ps["vel"])
 
         self.currforce  = np.array(ps["force"])
         self.currtorque = np.array(ps["torque"])
-        self.currjacobian = np.reshape(np.array(ps["jacobian"]), (6, 7))
+        # self.currjacobian = np.reshape(np.array(ps["jacobian"]), (6, 7))
 
-        self.q = np.array(ps["q"])
-        self.dq = np.array(ps["dq"])
+        # self.q = np.array(ps["q"])
+        # self.dq = np.array(ps["dq"])
 
-        self.curr_gripper_pos = np.array(ps["gripper_pos"])
+        # self.curr_gripper_pos = np.array(ps["gripper_pos"])
 
-    def update_currpos(self):
-        """
-        Internal function to get the latest state of the robot and its gripper.
-        """
-        ps = requests.post(self.url + "getstate").json()
-        self.currpos = np.array(ps["pose"])
-        self.currvel = np.array(ps["vel"])
+    # def update_currpos(self):
+    #     """
+    #     Internal function to get the latest state of the robot and its gripper.
+    #     """
+    #     ps = requests.post(self.url + "getstate").json()
+    #     self.currpos = np.array(ps["pose"])
+    #     self.currvel = np.array(ps["vel"])
 
-        self.currforce = np.array(ps["force"])
-        self.currtorque = np.array(ps["torque"])
-        self.currjacobian = np.reshape(np.array(ps["jacobian"]), (6, 7))
+    #     self.currforce = np.array(ps["force"])
+    #     self.currtorque = np.array(ps["torque"])
+    #     self.currjacobian = np.reshape(np.array(ps["jacobian"]), (6, 7))
 
-        self.q = np.array(ps["q"])
-        self.dq = np.array(ps["dq"])
+    #     self.q = np.array(ps["q"])
+    #     self.dq = np.array(ps["dq"])
 
-        self.curr_gripper_pos = np.array(ps["gripper_pos"])
+    #     self.curr_gripper_pos = np.array(ps["gripper_pos"])
 
     def _get_obs(self) -> dict:
         images = self.get_im()

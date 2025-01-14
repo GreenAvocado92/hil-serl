@@ -2,7 +2,7 @@ import json
 import requests
 import os
 
-offline_address = "http://127.0.0.1:5001/clearerr"
+offline_address = "http://127.0.0.1:5001/getstate"
 
 def online_pre():
     offline_data = {
@@ -15,10 +15,10 @@ def online_pre():
     print("offline res = ", res)
 
 def o():
-    res = requests.post(offline_address, json={}).json()
-    print("ooo res = ", res)
-
+    res = requests.post(offline_address, json={"aa":12})
+    print("ooo res states = ", res.status_code)
+    print("test = ", res.text)
                   
 if __name__ == '__main__':
-    online_pre()
+    # online_pre()
     o()

@@ -158,11 +158,16 @@ class USBEnvUR(Ur10eEnv):
         time.sleep(0.1)
         requests.post(self.url + "update_param", json=self.config.PRECISION_PARAM)
         self._send_gripper_command(1.0)
-        
+        # import ipdb; ipdb.set_trace()
+
+        init_pose = [-1187.240, 214.741, 478.876, 0.021, 0.003, 0.942, 0.334]
+
+        """
         # Move above the target pose
         target = copy.deepcopy(self.currpos)
         target[2] = self.config.TARGET_POSE[2] + 0.05
         self.interpolate_move(target, timeout=0.5)
+
         time.sleep(0.5)
         self.interpolate_move(self.config.TARGET_POSE, timeout=0.5)
         time.sleep(0.5)
@@ -172,19 +177,27 @@ class USBEnvUR(Ur10eEnv):
         reset_pose = copy.deepcopy(self.config.TARGET_POSE)
         reset_pose[1] += 0.04
         self.interpolate_move(reset_pose, timeout=0.5)
-
+        """
+        # self._send_gripper_command(1.0)
+        self._update_currpos()
+        self.interpolate_move(init_pose, timeout=0.5)
+        
         obs, info = super().reset(**kwargs)
-        self._send_gripper_command(1.0)
-        time.sleep(1)
+
+        # self._send_gripper_command(1.0)
+        # time.sleep(1)
         self.success = False
         self._update_currpos()
         obs = self._get_obs()
+        
+        # import ipdb; ipdb.set_trace()
+
         return obs, info
     
     def interpolate_move(self, goal: np.ndarray, timeout: float):
         """Move the robot to the goal position with linear interpolation."""
-        if goal.shape == (6,):
-            goal = np.concatenate([goal[:3], euler_2_quat(goal[3:])])
+        # if goal.shape == (6,):
+        #     goal = np.concatenate([goal[:3], euler_2_quat(goal[3:])])
         self._send_pos_command(goal)
         time.sleep(timeout)
         self._update_currpos()

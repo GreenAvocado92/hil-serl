@@ -4,18 +4,10 @@ import threading
 # RTSP URL
 lock = threading.Lock()
 
-def start_rtsp(rtsp_url, frame):
+def start_rtsp(rtsp_url):
     # 创建VideoCapture对象
     # time.
     cap = cv2.VideoCapture(rtsp_url)
-    # width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    # height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    # print(f"视频分辨率: {width}x{height}")
-    # # 获取帧率
-    # fps = cap.get(cv2.CAP_PROP_FPS)
-
-    # print(f"视频帧率: {fps} FPS")
 
     # 检查是否成功打开视频流
     if not cap.isOpened():
@@ -32,15 +24,10 @@ def start_rtsp(rtsp_url, frame):
             break
 
         # 显示视频帧
-        # cv2.imshow('Video Stream', frame)
-
-        image_filename = f"frame_{frame_count}.png"
-
-        if frame_count % 100 == 0:
-            cv2.imwrite(image_filename, frame)
-            print(f"Saved {image_filename}")
-
-        frame_count += 1
+        dim = (frame.shape[1]/2, 0)
+        framed = cv2.resize(frame, dsize=None, fx=.5,fy=0.5)
+        cv2.imshow('Video Stream', framed)
+        cv2.imshow('Video Stream 2', framed)
 
         # 按'q'退出
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -51,12 +38,44 @@ def start_rtsp(rtsp_url, frame):
     cv2.destroyAllWindows()
 
 
+def start_multi_rtsp():
+    rtsp_url_0 = "rtsp://admin:admin@192.168.8.207:554/channel=1/stream=0"
+    rtsp_url_1 = "rtsp://admin:admin@192.168.8.208:554/channel=1/stream=0"
+    rtsp_url_2 = "rtsp://admin:admin@192.168.8.209:554/channel=1/stream=0"
+
+    cap_0 = cv2.VideoCapture(rtsp_url_0)
+    cap_1 = cv2.VideoCapture(rtsp_url_1)
+    cap_2 = cv2.VideoCapture(rtsp_url_2)
+
+    fx = 0.4
+    fy = 0.4
+
+    while True:
+        ret_0, frame_0 = cap_0.read()
+        ret_1, frame_1 = cap_1.read()
+        ret_2, frame_2 = cap_2.read()
+
+        if ret_0:
+            framed_0 = cv2.resize(frame_0, dsize=None, fx=fx,fy=fy)
+            cv2.imshow('207', framed_0)
+        if ret_1:
+            framed_1 = cv2.resize(frame_1, dsize=None, fx=fx,fy=fy)
+            cv2.imshow('208', framed_1)
+        if ret_2:
+            framed_2 = cv2.resize(frame_2, dsize=None, fx=fx,fy=fy)
+            cv2.imshow('209', framed_2)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
 if __name__ == "__main__":
-    rtsp_url = "rtsp://admin:admin@192.168.1.10:554/channel=1/stream=0"
-    frame = None
-    thread = threading.Thread(target=start_rtsp, args=(rtsp_url, frame))
+    start_multi_rtsp()
+
+    rtsp_url = "rtsp://admin:admin@192.168.8.208:554/channel=1/stream=0"
+    thread = threading.Thread(target=start_rtsp, args=(rtsp_url,))
+    rtsp_url1 = "rtsp://admin:admin@192.168.8.207:554/channel=1/stream=0"
+    thread1 = threading.Thread(target=start_rtsp, args=(rtsp_url1,))
+    
     thread.start()
-
-    time.sleep(2.)
-
+    # thread.start()
     # start_rtsp(rtsp_url)

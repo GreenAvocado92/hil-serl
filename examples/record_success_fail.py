@@ -33,7 +33,7 @@ def main(_):
 
     obs, _ = env.reset()
     successes = []
-    failures = []
+    failures = []   
     success_needed = FLAGS.successes_needed
     pbar = tqdm(total=success_needed)
     print("success_needed = ", success_needed)

@@ -239,7 +239,7 @@ class SpacemouseIntervention(gym.ActionWrapper):
             else:
                 gripper_action = np.zeros((1,))
             expert_a = np.concatenate((expert_a, gripper_action), axis=0)
-            expert_a[:6] += np.random.uniform(-0.5, 0.5, size=6)
+            # expert_a[:6] += np.random.uniform(-0.5, 0.5, size=6) # 原代码中，将移动随机化，然后将夹爪控制放上
 
         if self.action_indices is not None:
             filtered_expert_a = np.zeros_like(expert_a)

@@ -28,14 +28,14 @@ def on_press(key):
             success_key = True
     except AttributeError:
         pass
-
+"""
 def rotvec2quat(pos):
-    rotvec = pos[3:]
+    rotvec = pos[3:6]
     rotation = R.from_rotvec(rotvec)
     quat = rotation.as_quat()
 
     q = [pos[0] *1000, pos[1] *1000, pos[2] *1000] + list(quat)
-    return pos
+    return q
 
 def quat2rotvec(pos):
     quat = pos[3:]
@@ -43,6 +43,7 @@ def quat2rotvec(pos):
     rotvec = rotation.as_rotvec()
     q = [pos[0] / 1000, pos[1] / 1000, pos[2] / 1000]  + list(rotvec)
     return q
+"""
 
 def main(_):
     global success_key
@@ -53,12 +54,11 @@ def main(_):
     config = CONFIG_MAPPING[FLAGS.exp_name]()
     env = config.get_environment(fake_env=False, save_video=False, classifier=False)
 
-    sim = True
-    if sim == False:
-        import rtde_control, rtde_receive
-
-        rtde_c = rtde_control.RTDEControlInterface("127.0.0.1")
-        rtde_r = rtde_receive.RTDEReceiveInterface("127.0.0.1")
+    sim = False
+    # if sim == False:
+    #     import rtde_control, rtde_receive
+    #     rtde_c = rtde_control.RTDEControlInterface("192.168.8.12")
+    #     rtde_r = rtde_receive.RTDEReceiveInterface("192.168.8.12")
 
 
     obs, _ = env.reset()
@@ -67,24 +67,28 @@ def main(_):
     success_needed = FLAGS.successes_needed
     pbar = tqdm(total=success_needed)
     # print("success_needed = ", success_needed)
+
     while len(successes) < success_needed:
         actions = np.zeros(env.action_space.sample().shape)
         # 可以输出 actions
         actions, _ = env.action(actions)
 
+        # print("shapess = ", env.action_space.sample().shape)
         print("actions = ", actions)
         
-        if sim == False:
-            # 获取 ur 当前位姿
-            pose = rtde_r.getActualTCPPose() # xyz+rotvec
-            current_pose = rotvec2quat(pose)
+        _,_,_,_,_ = env.step(actions)
 
-            # 计算 ur 目标位姿        
-            pos = env.get_target_robot_pose(actions, current_pose) # x y z qw qx qy qz
-            pos = quat2rotvec(pos)
+        # if sim == False:
+        #     # 获取 ur 当前位姿
+        #     pose = rtde_r.getActualTCPPose() # xyz+rotvec
+        #     current_pose = rotvec2quat(pose)
 
-            # 控制 ur 运动
-            rtde_c.moveL(pos, 0.5, 0.3)
+        #     # 计算 ur 目标位姿        
+        #     pos = env.get_target_robot_pose(actions, current_pose) # x y z qw qx qy qz
+        #     pos = quat2rotvec(pos)
+
+        #     # 控制 ur 运动
+        #     rtde_c.moveL(pos, 0.5, 0.3)
         
 
 if __name__ == "__main__":
